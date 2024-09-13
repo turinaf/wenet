@@ -39,7 +39,7 @@ checkpoint=
 num_workers=1
 do_delta=false
 
-dir=exp/sp_spec_aug
+dir=exp/conformer
 tensorboard_dir=tensorboard
 
 # use average_checkpoint will get better result
@@ -50,16 +50,16 @@ average_num=10
 decode_modes="attention_rescoring ctc_greedy_search ctc_prefix_beam_search attention"
 
 # bpemode (unigram or bpe)
-nbpe=5000
+nbpe=50
 bpemode=unigram
 
 set -e
 set -u
 set -o pipefail
 
-train_set=train_960
+train_set=train
 dev_set=dev
-recog_set="test_clean test_other dev_clean dev_other"
+recog_set="test dev"
 
 train_engine=torch_ddp
 
@@ -68,41 +68,12 @@ deepspeed_save_states="model_only"
 
 . tools/parse_options.sh || exit 1;
 
-if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
-  echo "stage -1: Data Download"
-  for part in dev-clean test-clean dev-other test-other train-clean-100 train-clean-360 train-other-500; do
-    local/download_and_untar.sh ${datadir} ${data_url} ${part}
-  done
-fi
 
-if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
-  ### Task dependent. You have to make data the following preparation part by yourself.
-  ### But you can utilize Kaldi recipes in most cases
-  echo "stage 0: Data preparation"
-  for part in dev-clean test-clean dev-other test-other train-clean-100 train-clean-360 train-other-500; do
-    # use underscore-separated names in data directories.
-    local/data_prep_torchaudio.sh ${datadir}/LibriSpeech/${part} $wave_data/${part//-/_}
-  done
-fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
   ### Task dependent. You have to design training and dev sets by yourself.
   ### But you can utilize Kaldi recipes in most cases
   echo "stage 1: Feature Generation"
-  mkdir -p $wave_data/train_960
-  # merge total training data
-  for set in train_clean_100 train_clean_360 train_other_500; do
-    for f in `ls $wave_data/$set`; do
-      cat $wave_data/$set/$f >> $wave_data/train_960/$f
-    done
-  done
-  mkdir -p $wave_data/dev
-  # merge total dev data
-  for set in dev_clean dev_other; do
-    for f in `ls $wave_data/$set`; do
-      cat $wave_data/$set/$f >> $wave_data/$dev_set/$f
-    done
-  done
 
   tools/compute_cmvn_stats.py --num_workers 16 --train_config $train_config \
     --in_scp $wave_data/$train_set/wav.scp \
