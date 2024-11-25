@@ -28,7 +28,7 @@ job_id=2023
 # data_type can be `raw` or `shard`. Typically, raw is used for small dataset,
 # `shard` is used for large dataset which is over 1k hours, and `shard` is
 # faster on reading data and training.
-data_type=shard
+data_type=raw
 
 train_set=train
 # Optional train_config
